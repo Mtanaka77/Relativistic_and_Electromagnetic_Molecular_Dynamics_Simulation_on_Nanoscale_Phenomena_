@@ -1,5 +1,5 @@
 !*--------------------------------------------------------------------*
-!   @a_cnt3-3p7Ca.f03                     Dec.24, 2016, Nov.1, 2024   !   
+!   @a_cnt3-3p7Ca.f03                     Dec.24, 2016, Mar.21, 2025  !   
 !                                                                     !
 !   ## Molecular Dynamics in Relativistic Electromagnetic Fields ##   !
 !                                                                     !
@@ -40,6 +40,9 @@
 !    Maxwell equatins at all steps. The product of current and        !
 !    longitudinal electric field separates the EM and ES effects.     !
 !                                                                     !
+!  > The run must terminate in 5-step intervals, usually a few more   !
+!    minutes waiting for completion. L.2600                           !
+!                                                                     !
 !*--------------------------------------------------------------------*
 !                                                                     !
 !   The CGS system:                                                   !
@@ -66,9 +69,9 @@
 !                                                                     !
 !   B) Inside of subroutine /moldyn/                                  ! 
 !       initialization for it=1 case (kstart=0)                       !
-!       Labels                                                        !
-!       particle index: ncel(...)                                     !
+!       buildup of particle index: ncel(...) and ibind() /Labels/     !
 !       initialization for write output: FT.13, FT.23                 !
+!                                                                     !
 !       start label 1000                                              !
 !         FFTW initialization (one time at a start/restart time)      !
 !         equation of magnetic field                                  !
@@ -702,7 +705,7 @@
 !     pref_CL = e_unit**2/a_unit
 !     pref_EM = e_unit*a_unit
 !
-      Temp_erg= Temp*1.6022d-12 ! temperature in erg
+      Temp_erg= Temp*1.6022d-12 ! temperature in eV to erg
       pthe = sqrt(Temp_erg)     ! cm/sec
 !
 !     kJoule  = 1.d10           ! erg
@@ -1015,7 +1018,7 @@
 !-----------------------------------------------------------------------
       subroutine moldyn (walltime0,walltime1,size,ipar,igrp,ifDebye,  &
                          ifrefl,ns,np,nq,nCLp)
-!------------------------++ ++ ++ ++ +++ -----i-------------------------
+!------------------------++ ++ ++ ++ +++ -------------------------------
 !* Main loop of molecular dynamics
       use, intrinsic :: iso_c_binding 
       use omp_lib
@@ -1081,7 +1084,7 @@
                     sbx,sbz,time
       equivalence  (ekin(1),ekin20(1))
 !
-      integer*8      ix,iy,iz,ll,mm,nn,l,m,n
+      integer(c_INT) ix,iy,iz,ll,mm,nn,l,m,n
       integer(c_int) i,j,k,kk,jj,ibox,neigh,it,is,iwrt1,iwrt2,iwrt3, &
                     nskip,nsk,ncoe,istop1,istop2,istop7,istop8
       common/parm1/ it,is
@@ -1260,6 +1263,10 @@
 !
       dth= 0.5d0*dt
       rcut2 = rcut_Clf**2  ! Cutoff, cm**2 
+!
+!   Labels are made by particle index table, ibind(k, ), L.1310
+!     n = i + isizeX*(j-1 + isizeY*(k-1))
+!     ibind( 1,n) = i   +  j*isizeX +  k*isize2 - isize4
 !   -----------------
       call Labels
 !   -----------------
@@ -1271,7 +1278,7 @@
 !* All particles are indexed by ncel(...)
 !
       do i = 1,nCLp   ! do 100
-      ix= isizeX*(x0(i)-xmin3)/Lx3 +1.0000000001d0
+      ix= isizeX*(x0(i)-xmin3)/Lx3 +1.0000000001d0  ! x0() in L.1200
       iy= isizeY*(y0(i)-ymin3)/Ly3 +1.0000000001d0
       iz= isizeZ*(z0(i)-zmin3)/Lz3 +1.0000000001d0
 !
@@ -2939,12 +2946,14 @@
         Lx3= xmax3 -xmin3
         Ly3= ymax3 -ymin3
         Lz3= zmax3 -zmin3
+!
+!    Particle index table of ibind( , ), in L.2950 and L.3037
 !    -----------------
         call Labels
 !    -----------------
 !
         do k= 1,nc3
-        ncel(k)= 0             !  clear the cell register.
+        ncel(k)= 0             !  Clear the cell register.
         end do
 !
 !  Step 1: LR-part for 5 steps
@@ -3033,7 +3042,7 @@
         if(neigh.eq.0) go to 230     ! far away
 !
         do 240 l= 1,ncel(neigh)      ! find ions in the boxes around i-th
-        j= lcel(l,neigh)             !  j-th belongs to this box.
+        j= lcel(l,neigh)             !  j-th belongs to this box, from L.2965
 !
         if(j.le.i) go to 240
 !          ++++++
@@ -3054,7 +3063,7 @@
               iafl(nafl)= i
               jafl(nafl)= j
             else
-              nipl(kk)= nipl(kk) +1   ! nipl(kk)=1 and ...
+              nipl(kk)= nipl(kk) +1   ! nipl(kk)>=1, build up 
               liplc(nipl(kk),kc)= j
             end if
 !
@@ -3064,7 +3073,7 @@
               iafl(nafl)= i
               jafl(nafl)= j
             else
-              nipl(kk)= nipl(kk) +1   ! nipl(kk)=1 and ...
+              nipl(kk)= nipl(kk) +1   ! nipl(kk)>=1, build up
               lipl(nipl(kk),kk)= j
             end if
           end if
