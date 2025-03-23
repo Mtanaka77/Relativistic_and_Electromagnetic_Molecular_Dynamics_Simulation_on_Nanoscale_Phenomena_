@@ -55,8 +55,10 @@
 !    3D filled H(+) by ranff(0.) ... in /moldyn/                      !
 !    No gap between r>rout and r<rout  ... in /forces/                !
 !                                                                     !
-!   Subroutine descriptions                                           !
+!   Main and subroutine descriptions:                                 !
 !   A) Program cnt3emp                                                !  
+!        Setup of MPI, ionode, call RUN_MD, and closing the program   ! 
+!                                                                     !
 !        - /RUN_MD/ - tables of parallelization: nz0-nz3, i00,i01     !
 !                     /READ_CONF/                                     !
 !                     formation of pellets (for kstart=0)             !
@@ -69,7 +71,7 @@
 !                                                                     !
 !   B) Inside of subroutine /moldyn/                                  ! 
 !       initialization for it=1 case (kstart=0)                       !
-!       buildup of particle index: ncel(...) and ibind() /Labels/     !
+!       build of particle index: ncel(...) and ibind() /Labels/       !
 !       initialization for write output: FT.13, FT.23                 !
 !                                                                     !
 !       start label 1000                                              !
@@ -297,9 +299,9 @@
       common/parm9/  cptot       ! +++++ from READ_CONF, L.3710
 !
 !
-      real(c_double) rcut_Clf,rcutlj,Temp,Temp_erg,epsCLJ,epsLJ, &
+      real(c_double) rcut_Clf,rcutLJ,Temp,Temp_erg,epsCLJ,epsLJ, &
                      W_1p,Nele0
-      common/cutoffrd/ rcut_Clf,rcutlj
+      common/cutoffrd/ rcut_Clf,rcutLJ
       common/ELSTA/  Temp,epsCLJ,epsLJ
       common/energ0/ W_1p,Nele0
 !
@@ -1026,8 +1028,8 @@
 !
       include 'param_3p7_Ca.h'
 !
-!     include 'fftw3.f03'     ! FFTW3 generic
-      include 'aslfftw3.f03'  ! NEC 2003 style
+      include 'fftw3.f03'     ! FFTW3 generic
+!     include 'aslfftw3.f03'  ! NEC 2003 style
       include 'mpif.h'
 
       type(C_PTR),save :: plan,pinv
@@ -1116,12 +1118,12 @@
       real(c_double) Temp,epsCLJ,epsLJ,m_gamma,Pot0,W_1p,Nele0,   &
                      R_sp,D_sp,N_sp,Lambda_D,massi,               &
                      ch_ion,wt_ion,rd_CP,rd_HP,ch_el,wt_el,rd_el, &
-                     R_cn1,R_cn2,Z_cn,Z_cn1,Z_cn2,rcut_Clf,rcutlj
+                     R_cn1,R_cn2,Z_cn,Z_cn1,Z_cn2,rcut_Clf,rcutLJ
       common/ELSTA/  Temp,epsCLJ,epsLJ
       common/energ0/ W_1p,Nele0
       common/ionsiz/ R_sp,D_sp,N_sp,massi,Lambda_D,              &
                      ch_ion,wt_ion,rd_CP,rd_HP,ch_el,wt_el,rd_el 
-      common/cutoffrd/ rcut_Clf,rcutlj
+      common/cutoffrd/ rcut_Clf,rcutLJ
 !
       real(c_double)  R_cnt1,Z_cnt1,R_cnt2,Z_cnt2a,Z_cnt2b
       common/cntubes/ R_cnt1,Z_cnt1,R_cnt2,Z_cnt2a,Z_cnt2b
@@ -1131,7 +1133,7 @@
       integer(c_int),dimension(nbxc,nc3) :: lcel
       integer(c_int),dimension(27,nc3) :: ibind
       common/srflist/ ncel,lcel
-      common/boxind/ ibind
+      common/boxind/  ibind
 !
       logical        cr_table
       integer(c_int) itab
@@ -1264,7 +1266,7 @@
       dth= 0.5d0*dt
       rcut2 = rcut_Clf**2  ! Cutoff, cm**2 
 !
-!   Labels are made by particle index table, ibind(k, ), L.1310
+!   Labels are created by particle index table, ibind(27,nc3), L.1310
 !     n = i + isizeX*(j-1 + isizeY*(k-1))
 !     ibind( 1,n) = i   +  j*isizeX +  k*isize2 - isize4
 !   -----------------
@@ -2862,7 +2864,7 @@
 !
 !-----------------------------------------------------------------------
       subroutine forces (x,y,z,ch,am,ag,ffr,E_C_r1,E_C_r2,E_LJ2,       &
-                         Lx3,Ly3,Lz3,rcut_Clf,rcutlj,prefc_lj,pref_lj, &
+                         Lx3,Ly3,Lz3,rcut_Clf,rcutLJ,prefc_LJ,pref_LJ, &
                          size,ipar,igrp,n_twice,ns,np,nCLp)
 !---------------------------------------+++++++-------------------------
       use, intrinsic :: iso_c_binding 
@@ -2871,42 +2873,54 @@
       include    'param_3p7_Ca.h' 
       include    'mpif.h'
 !
-      integer(c_int) size,ipar,igrp,ns,np,nCLp,n_twice
-!
       real(c_double),dimension(npq0) :: x,y,z,ch,am,ag
       real(c_double),dimension(npq0,3) :: ffr,ffc
-      real(c_double)  E_C_r1,E_C_r2,E_LJ2,E_LJ,Lx3,Ly3,Lz3, &
-                      alj,dx0,dy0,dz0
 !
-      real(c_double)  fec,x0,y0,z0
-      common/forcepl/ fec(npq0,3)                            ! in /moldyn/
-      common/initpos/ x0(npq0),y0(npq0),z0(npq0) 
+      real(c_double) E_C_r1,E_C_r2,E_LJ2,E_LJ,Lx3,Ly3,Lz3, &
+                     rcut_Clf,rcutLJ,prefC_LJ,pref_LJ,     &
+                     aLJ,dx0,dy0,dz0
+      integer(c_int) size,ipar,igrp,ns,np,nCLp,n_twice
+!
+      real(c_double),dimension(npq0,3) :: fec   ! in /moldyn/
+      real(c_double),dimension(npq0) :: x0,y0,z0
+      common/forcepl/ fec 
+      common/initpos/ x0,y0,z0
 !
       real(c_float)  time,xp_leng
       common/headr2/ time,xp_leng
 !  
-      integer(c_int) i,j,k,l,kk,kc,ll,ncel,lcel,nipl,lipl,liplc,kmax, &
-                     ibind,istop,ibox,neigh,ierror,iwrt1,iwrt2,iwrt3, &
+      integer(c_int) i,j,k,l,kk,kc,ll,ibox,neigh,ierror,   &
                      ix,iy,iz,ix1,iy1,iz1,istp,npar
-      common/srflist/ ncel(nc3),lcel(nbxc,nc3)               !  in /moldyn/
-      common/srflis2/ nipl(n00),lipl(nbxs,n00),liplc(nbx2,n10),kmax 
-      common/boxind/ ibind(27,nc3)
-      common/abterms/ istop
-      common/iotim/  iwrt1,iwrt2,iwrt3
 !
-      logical        cr_table
-      integer(c_int)  itab,nipl0,lipl0,itabs            ! nipl0 in /moldyn/
-      common/srflst0/ cr_table,itab,nipl0(n00),lipl0(nbxs,n00) 
+      integer(c_int),dimension(nc3) :: ncel
+      integer(c_int),dimension(nbxc,nc3) :: lcel
+      integer(c_int),dimension(nbxs,n00) :: lipl
+      integer(c_int),dimension(n00) :: nipl
+      integer(c_int),dimension(nbx2,n10) :: liplc
+      integer(c_int),dimension(27,nc3) :: ibind
+      integer(c_int) kmax,istop,iwrt1,iwrt2,iwrt3
+!
+      common/srflist/ ncel,lcel               !  in /moldyn/
+      common/srflis2/ nipl,lipl,liplc,kmax 
+      common/boxind/  ibind
+      common/abterms/ istop
+      common/iotim/   iwrt1,iwrt2,iwrt3
+!
+      logical         cr_table
+      integer(c_int)  itab,itabs              ! nipl0 in /moldyn/
+      integer(c_int),dimension(n00) :: nipl0
+      integer(c_int),dimension(nbxs,n00) :: lipl0
+      common/srflst0/ cr_table,itab,nipl0,lipl0
       common/plupdat/ itabs
 !
 !* afre table
 !     integer(c_int)  naf
 !     parameter       (naf=(ns0/num_proc)*0.3)  !<-- param_3p7_Ca.h
-      integer(c_int)  nafl,iafl,jafl
-      common/afretap/ nafl,iafl(nbxc*naf),jafl(nbxc*naf)
+      integer(c_int)  nafl
+      integer(c_int),dimension(nbxc*naf) :: iafl,jafl
+      common/afretap/ nafl,iafl,jafl
 !
-      real(c_double) rcut_Clf,rcutlj,prefC_LJ,pref_LJ,        &
-                     dx,dy,dz,tt,r2,r,forceV,ccel,            &
+      real(c_double) dx,dy,dz,tt,r2,r,forceV,ccel,            &
                      driwu,driwu2,addpot,slj,                 &
                      rsi,snt,rcl,rsccl,rsclj,preflj,          &
                      rcut,rcut2,unif1(3),unif2(3)
@@ -3207,27 +3221,27 @@
       if(i.le.ns .and. j.le.ns) then   ! strictly, C or Au pair
         rcut= 3.5d-8
 !
-        dx0= x0(i) -x0(j)      ! crystal distance = alj
+        dx0= x0(i) -x0(j)      ! crystal distance = aLJ
         dy0= y0(i) -y0(j)      !  frozen (ugoka nai)
         dz0= z0(i) -z0(j)
-        alj= sqrt(dx0**2 +dy0**2 +dz0**2)
+        aLJ= sqrt(dx0**2 +dy0**2 +dz0**2)
 !
-        if(alj.lt.rcut) then   ! as r < 3.5 Ang
-          preflj= prefc_lj     !   only 1st neighbor
-          slj = r/(alj/driwu)  !   note: minimum at alj/driwu
+        if(aLJ.lt.rcut) then   ! as r < 3.5 Ang
+          preflj= prefc_LJ     !   only 1st neighbor
+          slj = r/(aLJ/driwu)  !   note: minimum at aLJ/driwu
 !                  ***
-          rsclj= 0.81d0*alj/driwu
+          rsclj= 0.81d0*aLJ/driwu
         else                   ! larger than equib. radius
-          rcut= rcutlj         !   exclusion core (sterlic)
-          preflj= pref_lj
+          rcut= rcutLJ         !   exclusion core (sterlic)
+          preflj= pref_LJ
 !
           slj = r/((ag(i)+ag(j))/driwu)
           rsclj= 0.81d0*(ag(i)+ag(j))/driwu
         end if
 !
       else                     ! 3.5 Ang, other than C and Au
-        rcut= rcutlj           !   exclusion core (sterlic)
-        preflj= pref_lj
+        rcut= rcutLJ           !   exclusion core (sterlic)
+        preflj= pref_LJ
 !
         slj = r/((ag(i)+ag(j))/driwu)
         rsclj= 0.81d0*(ag(i)+ag(j))/driwu
@@ -3280,24 +3294,24 @@
         dx0= x0(i) -x0(j)    ! crystal distance
         dy0= y0(i) -y0(j)
         dz0= z0(i) -z0(j)
-        alj= sqrt(dx0**2 +dy0**2 +dz0**2)
+        aLJ= sqrt(dx0**2 +dy0**2 +dz0**2)
 !
-        if(alj.lt.rcut) then  ! < 3.5 ang
-          preflj= prefc_lj     ! onLy3 1st neighbor
-          slj = r/(alj/driwu)  ! note: minimum at alj/driwu
+        if(aLJ.lt.rcut) then  ! < 3.5 ang
+          preflj= prefc_LJ     ! onLy3 1st neighbor
+          slj = r/(aLJ/driwu)  ! note: minimum at aLJ/driwu
 !                  ***
-          rsclj= 0.81d0*alj/driwu
+          rsclj= 0.81d0*aLJ/driwu
         else                  ! larger than equib. radius
-          rcut= rcutlj         ! exclusion core (sterlic)
-          preflj= pref_lj
+          rcut= rcutLJ         ! exclusion core (sterlic)
+          preflj= pref_LJ
 !
           slj = r/((ag(i)+ag(j))/driwu)
           rsclj= 0.81d0*(ag(i)+ag(j))/driwu
         end if
 !
       else                   ! 3.5 ang, other than c and au
-        rcut= rcutlj          ! exclusion core (sterlic)
-        preflj= pref_lj
+        rcut= rcutLJ          ! exclusion core (sterlic)
+        preflj= pref_LJ
 !
         slj = r/((ag(i)+ag(j))/driwu)
         rsclj= 0.81d0*(ag(i)+ag(j))/driwu
@@ -3427,8 +3441,9 @@
 !----------------------------------------------------------
       subroutine Labels
 !----------------------------------------------------------
-!*  Indices of the neighboring (27) sub-boxes.
-!   Non-periodic: no folding
+!*  Indices of the neighboring (27) sub-boxes are defined
+!   and saved in ibind(27,nc3). Non-periodic: no folding
+!
       use, intrinsic :: iso_c_binding 
       implicit none
 !
@@ -3817,8 +3832,8 @@
 !  
       character(len=8) praefix8,text1*40
 !
-      real(c_double) rcut_Clf,rcutlj,Temp,epsCLJ,epsLJ
-      common/cutoffrd/ rcut_Clf,rcutlj
+      real(c_double) rcut_Clf,rcutLJ,Temp,epsCLJ,epsLJ
+      common/cutoffrd/ rcut_Clf,rcutLJ
       common/ELSTA/  Temp,epsCLJ,epsLJ
 !
       integer(c_int)  iiwrt1,iiwrt2,iiwrt3
@@ -3951,10 +3966,10 @@
       integer(c_int) ns,np,nCLp
       INTEGER(c_int) N_LP,v_G,N_SMol,v_SP,v_SM,Seed
 !
-      real(c_double) rcutlj,rcut_Clf,SKIN
+      real(c_double) rcutLJ,rcut_Clf,SKIN
       real(c_double) Temp,epsCLJ,epsLJ
 !
-      common/cutoffrd/ rcut_Clf,rcutlj
+      common/cutoffrd/ rcut_Clf,rcutLJ
       common/ELSTA/  Temp,epsCLJ,epsLJ
 !----------------------------------------------------------------
       real(c_double) pi,tg,dt,dth,prefC_LJ,pref_LJ,pthe,tmax
@@ -4080,8 +4095,8 @@
       common/ionsiz/ R_sp,D_sp,N_sp,massi,Lambda_D,               &
                      ch_ion,wt_ion,rd_CP,rd_HP,ch_el,wt_el,rd_el 
 !
-      real(c_double) rcut_Clf,rcutlj,pi2,cci
-      common/cutoffrd/ rcut_Clf,rcutlj
+      real(c_double) rcut_Clf,rcutLJ,pi2,cci
+      common/cutoffrd/ rcut_Clf,rcutLJ
 !
       integer(c_int) sgn(3,6)
       data sgn /1,0,0, -1,0,0, 0,1,0, 0,-1,0, 0,0,1, 0,0,-1/

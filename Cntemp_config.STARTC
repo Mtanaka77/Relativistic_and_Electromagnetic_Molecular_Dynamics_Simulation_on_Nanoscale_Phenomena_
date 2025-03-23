@@ -1,6 +1,6 @@
 # Praefix-String......................: Cemp0701
 # Cell boundary 0/1/2 (open/closed/2D):            0
-# Maximum cpu time (min). ca 10 min.. :    60.0
+# Maximum cpu time (min).less 5 min...;    1430.0
 # Physikalische Endzeit.. 10^-15 sec..:    50.1000d-15
 # Diskretisierungs-Schritt..0.0005d-15:    0.00050d-15
 # Write out interval for IWRT1..0.025.:           25
