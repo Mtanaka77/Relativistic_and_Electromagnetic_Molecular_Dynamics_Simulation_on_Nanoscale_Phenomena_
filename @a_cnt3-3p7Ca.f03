@@ -13,8 +13,7 @@
 !      Computer Physics Commun., vol.241, pp.56-63 (2019).            !
 !      Fortran 2003 and MPI Packages   Nov. 3 (2020)                  !
 !                                                                     !
-!   Author/maintainer: Motohiko Tanaka, Ph.D.,Professor,              !
-!      Graduate School of Chubu University, Kasugai 487-8501, Japan.  !
+!   Author: Motohiko Tanaka, Ph.D., Chikusa, Nagoya 464, Japan.       !
 !                                                                     !
 !   GPL-3.0 License, at https://github.com/Mtanaka77/                 !
 !     /Relativistic_Molecular_Dynamics_Simulation/                    !
