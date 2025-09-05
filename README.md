@@ -1,6 +1,6 @@
 ## Relativistic and Electromagnetic Molecular Dynamics Simulation for Nanoscale Phenomena ##
 
-As "Open Internet Access by Molecular Dynamics Simulations", a couple of 
+For "Open Internet Access by Molecular Dynamics Simulations", a couple of 
 various codes are shown in https://github.com/Mtanaka77/. The dynamics 
 simulation codes are, 
 (1) "Relativistic and Electromagnetic Molecular Dynamics Simulation 
