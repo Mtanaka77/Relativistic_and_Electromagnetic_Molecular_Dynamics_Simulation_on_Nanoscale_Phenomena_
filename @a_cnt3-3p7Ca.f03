@@ -93,6 +93,7 @@
 !                                                                     !
 !*--------------------------------------------------------------------*
 ! Fortran 2003 version
+! $ mpif90 -mcmodel=medium -fpic -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 &> log 
 !
       program  cnt3ems
       use, intrinsic :: iso_c_binding 

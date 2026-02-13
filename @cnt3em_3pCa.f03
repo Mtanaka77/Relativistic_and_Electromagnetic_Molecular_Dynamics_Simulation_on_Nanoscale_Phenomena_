@@ -80,6 +80,9 @@
 !       write(11,'("This run uses ",i3," ranks",/)') size             !
 !                                                                     !
 !*--------------------------------------------------------------------*
+! Parallel Fortran 2003
+! $ mpif90 -mcmodel=medium -fpic -O2 @cnt3em_3pCa.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 
+!*--------------------------------------------------------------------
 ! 
       program  cnt3ems
       implicit  none
@@ -249,7 +252,7 @@
         cputime  = buffer1(1)
         walltime = buffer1(2)
       end if
-
+!
 ! When the date line is passed:
       if(cputime.lt.0.) cputime = cputime + 86400.d0
 
@@ -993,8 +996,8 @@
       use, intrinsic :: iso_c_binding 
       implicit none
 !
-!     include 'fftw3.f03'     ! Generic FFTW3
-      include 'aslfftw3.f03'  ! NEC 2003 style
+      include 'fftw3.f03'     ! Generic FFTW3
+!     include 'aslfftw3.f03'  ! NEC 2003 style
 !
       include 'param_em3p7_Ca.h'
       include 'mpif.h'
@@ -1772,18 +1775,18 @@
         call fftw_execute_r2r (pinv,psi_c,psi) 
       end if
 !
-!         if(iwrt1.eq.0 .and. ionode) then
-!         OPEN (unit=11,file=praefixc//'.06'//suffix2,             &
-!               status='unknown',position='append',form='formatted')
-!         n= 1
-!         m= 1
-!         do l= 1,60,3
-!         write(11,990) l,m,n,psi_c(l,m,n)
-! 990     format('l,m,n,psi_c=',3i5,2x,1pd11.4)
-!         end do
+          if(iwrt1.eq.0 .and. ionode) then
+          OPEN (unit=11,file=praefixc//'.06'//suffix2,             &
+                status='unknown',position='append',form='formatted')
+          n= 1
+          m= 1
+          do l= 1,60,3
+          write(11,990) l,m,n,psi_c(l,m,n)
+  990     format('l,m,n,psi_c=',3i5,2x,1pd11.4)
+          end do
 !
-!         close(11)
-!         end if
+          close(11)
+          end if
 !
 !  cjx(n+1/2): vx(n+1/2)
 !   Separate the transverse component from the longitudinal one: 
@@ -1821,9 +1824,9 @@
          OPEN (unit=30,file=praefixc//'.30'//suffix2,              &
               status='unknown',position='append',form='unformatted')
 !
-         do n= 1,mz
-         do m= 1,my
-         do l= 1,mx
+         do n= 1,mzh
+         do m= 1,myh
+         do l= 1,mxh
          qq1(l,m,n)= qq(l,m,n)
          psi1(l,m,n)= psi(l,m,n)
          end do
