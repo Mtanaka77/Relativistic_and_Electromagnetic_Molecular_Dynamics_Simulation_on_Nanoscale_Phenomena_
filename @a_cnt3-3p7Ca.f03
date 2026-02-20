@@ -92,8 +92,9 @@
 !     used instead of mod(it,iiwrt1), etc.; read(12) iiwrt1,...       ! 
 !                                                                     !
 !*--------------------------------------------------------------------*
-! Fortran 2003 version
+! Fortran 2003 version - gfortran
 ! $ mpif90 -mcmodel=medium -fpic -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 &> log 
+! $ mpiexec -n <proc> a.out &  <proc>=6 or more
 !
       program  cnt3ems
       use, intrinsic :: iso_c_binding 
