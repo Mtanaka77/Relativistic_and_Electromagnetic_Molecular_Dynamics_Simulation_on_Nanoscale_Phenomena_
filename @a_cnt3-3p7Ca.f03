@@ -1,5 +1,5 @@
 !*--------------------------------------------------------------------*
-!   @a_cnt3-3p7Ca.f03                     Dec.24, 2016, Mar.23, 2025  !   
+!   @a_cnt3-3p7Ca.f03                     Dec.24, 2016, Nov.1, 2024   !   
 !                                                                     !
 !   ## Molecular Dynamics in Relativistic Electromagnetic Fields ##   !
 !                                                                     !
@@ -13,16 +13,12 @@
 !      Computer Physics Commun., vol.241, pp.56-63 (2019).            !
 !      Fortran 2003 and MPI Packages   Nov. 3 (2020)                  !
 !                                                                     !
-!   Author: Motohiko Tanaka, Ph.D., Chikusa, Nagoya 464, Japan.       !
+!   Author/maintainer: Motohiko Tanaka, Ph.D.,Professor,              !
+!      Graduate School of Chubu University, Kasugai 487-8501, Japan.  !
 !                                                                     !
 !   GPL-3.0 License, at https://github.com/Mtanaka77/                 !
 !     /Relativistic_Molecular_Dynamics_Simulation/                    !
 !                                                                     !
-!*--------------------------------------------------------------------*
-!  The initial version by Fujitsu FX100 Supercomputer, 2015-2019.     !
-!                                                                     !
-!    mpifrtpx -Kfast,openmp -o aq4.out @cnt3emq.f03 -lfftw3           !
-!    (Ez,Bx) in envelop: (sin,cos)*exp(-(t/tq)**2)                    !
 !*--------------------------------------------------------------------*
 !                                                                     !
 !  Used files :                                                       !
@@ -39,9 +35,6 @@
 !    Maxwell equatins at all steps. The product of current and        !
 !    longitudinal electric field separates the EM and ES effects.     !
 !                                                                     !
-!  > The run must terminate in 5-step intervals, usually a few more   !
-!    minutes waiting for completion. L.2600                           !
-!                                                                     !
 !*--------------------------------------------------------------------*
 !                                                                     !
 !   The CGS system:                                                   !
@@ -54,10 +47,8 @@
 !    3D filled H(+) by ranff(0.) ... in /moldyn/                      !
 !    No gap between r>rout and r<rout  ... in /forces/                !
 !                                                                     !
-!   Main and subroutine descriptions:                                 !
+!   Subroutine descriptions                                           !
 !   A) Program cnt3emp                                                !  
-!        Setup of MPI, ionode, call RUN_MD, and closing the program   ! 
-!                                                                     !
 !        - /RUN_MD/ - tables of parallelization: nz0-nz3, i00,i01     !
 !                     /READ_CONF/                                     !
 !                     formation of pellets (for kstart=0)             !
@@ -70,9 +61,9 @@
 !                                                                     !
 !   B) Inside of subroutine /moldyn/                                  ! 
 !       initialization for it=1 case (kstart=0)                       !
-!       build of particle index: ncel(...) and ibind() /Labels/       !
+!       Labels                                                        !
+!       particle index: ncel(...)                                     !
 !       initialization for write output: FT.13, FT.23                 !
-!                                                                     !
 !       start label 1000                                              !
 !         FFTW initialization (one time at a start/restart time)      !
 !         equation of magnetic field                                  !
@@ -92,9 +83,20 @@
 !     used instead of mod(it,iiwrt1), etc.; read(12) iiwrt1,...       ! 
 !                                                                     !
 !*--------------------------------------------------------------------*
-! Fortran 2003 version - gfortran
-! $ mpif90 -mcmodel=medium -fpic -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 &> log 
-! $ mpiexec -n <proc> a.out &  <proc>=6 or more
+! Fortran 2003 version                                                !
+!                                                                     !
+! The initial version by Fujitsu FX100 Supercomputer, 2015-2019.      !
+! $ mpifrtpx -Kfast,openmp -o aq4.out @cnt3emq.f03 -lfftw3            !
+!    (Ez,Bx) in envelop: (sin,cos)*exp(-(t/tq)**2)                    !
+!                                                                     !
+! PGFortran                                                           !
+! $ mpif90 -mcmodel=medium -fast -tp=px -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 
+!                                                                     !
+! gfortran                                                            !
+! $ mpif90 -mcmodel=medium -fpic -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 
+!                                                                     !
+! $ mpiexec -n 6 a.out &  <proc>=6 or more                            !
+!*--------------------------------------------------------------------*
 !
       program  cnt3ems
       use, intrinsic :: iso_c_binding 
@@ -130,11 +132,11 @@
       suffix0= numbr0  ! one character - Cntemp_config.STARTC
 !
 !
-      if(iflinx) then      ! sname='Cntemp' in param_3p7_Ca.h
-        praefixs = '/lv01/mtanaka/cntem3-para3/'//sname
-        praefixi = '/lv01/mtanaka/cntem3-para3/'//cname  ! read(12) - common by NFS
-        praefixc = '/lv01/mtanaka/cntem3-para3/'//cname  ! write(13)
-        praefixe = '/lv01/mtanaka/cntem3-para3/'//sname  ! WRITE_CONF
+      if(iflinx) then  ! mtanaka or/lv01, sname='Cntemp' in param_3p7_Ca.h
+        praefixs = '/home/mtanaka/cntem3-para3/'//sname
+        praefixi = '/home/mtanaka/cntem3-para3/'//cname  ! read(12) - common by NFS
+        praefixc = '/home/mtanaka/cntem3-para3/'//cname  ! write(13)
+        praefixe = '/home/mtanaka/cntem3-para3/'//sname  ! WRITE_CONF
       else
         praefixs = '/home/tanakam/cntem3-para3/'//sname
         praefixi = '/data/sht/tanakam/'//cname  ! read(12) - 18 + 6
@@ -300,9 +302,9 @@
       common/parm9/  cptot       ! +++++ from READ_CONF, L.3710
 !
 !
-      real(c_double) rcut_Clf,rcutLJ,Temp,Temp_erg,epsCLJ,epsLJ, &
+      real(c_double) rcut_Clf,rcutlj,Temp,Temp_erg,epsCLJ,epsLJ, &
                      W_1p,Nele0
-      common/cutoffrd/ rcut_Clf,rcutLJ
+      common/cutoffrd/ rcut_Clf,rcutlj
       common/ELSTA/  Temp,epsCLJ,epsLJ
       common/energ0/ W_1p,Nele0
 !
@@ -1021,7 +1023,7 @@
 !-----------------------------------------------------------------------
       subroutine moldyn (walltime0,walltime1,size,ipar,igrp,ifDebye,  &
                          ifrefl,ns,np,nq,nCLp)
-!------------------------++ ++ ++ ++ +++ -------------------------------
+!------------------------++ ++ ++ ++ +++ -----i-------------------------
 !* Main loop of molecular dynamics
       use, intrinsic :: iso_c_binding 
       use omp_lib
@@ -1087,7 +1089,7 @@
                     sbx,sbz,time
       equivalence  (ekin(1),ekin20(1))
 !
-      integer(c_INT) ix,iy,iz,ll,mm,nn,l,m,n
+      integer*8      ix,iy,iz,ll,mm,nn,l,m,n
       integer(c_int) i,j,k,kk,jj,ibox,neigh,it,is,iwrt1,iwrt2,iwrt3, &
                     nskip,nsk,ncoe,istop1,istop2,istop7,istop8
       common/parm1/ it,is
@@ -1119,12 +1121,12 @@
       real(c_double) Temp,epsCLJ,epsLJ,m_gamma,Pot0,W_1p,Nele0,   &
                      R_sp,D_sp,N_sp,Lambda_D,massi,               &
                      ch_ion,wt_ion,rd_CP,rd_HP,ch_el,wt_el,rd_el, &
-                     R_cn1,R_cn2,Z_cn,Z_cn1,Z_cn2,rcut_Clf,rcutLJ
+                     R_cn1,R_cn2,Z_cn,Z_cn1,Z_cn2,rcut_Clf,rcutlj
       common/ELSTA/  Temp,epsCLJ,epsLJ
       common/energ0/ W_1p,Nele0
       common/ionsiz/ R_sp,D_sp,N_sp,massi,Lambda_D,              &
                      ch_ion,wt_ion,rd_CP,rd_HP,ch_el,wt_el,rd_el 
-      common/cutoffrd/ rcut_Clf,rcutLJ
+      common/cutoffrd/ rcut_Clf,rcutlj
 !
       real(c_double)  R_cnt1,Z_cnt1,R_cnt2,Z_cnt2a,Z_cnt2b
       common/cntubes/ R_cnt1,Z_cnt1,R_cnt2,Z_cnt2a,Z_cnt2b
@@ -1134,7 +1136,7 @@
       integer(c_int),dimension(nbxc,nc3) :: lcel
       integer(c_int),dimension(27,nc3) :: ibind
       common/srflist/ ncel,lcel
-      common/boxind/  ibind
+      common/boxind/ ibind
 !
       logical        cr_table
       integer(c_int) itab
@@ -1266,10 +1268,6 @@
 !
       dth= 0.5d0*dt
       rcut2 = rcut_Clf**2  ! Cutoff, cm**2 
-!
-!   Labels are created by particle index table, ibind(27,nc3), L.1310
-!     n = i + isizeX*(j-1 + isizeY*(k-1))
-!     ibind( 1,n) = i   +  j*isizeX +  k*isize2 - isize4
 !   -----------------
       call Labels
 !   -----------------
@@ -1281,7 +1279,7 @@
 !* All particles are indexed by ncel(...)
 !
       do i = 1,nCLp   ! do 100
-      ix= isizeX*(x0(i)-xmin3)/Lx3 +1.0000000001d0  ! x0() in L.1200
+      ix= isizeX*(x0(i)-xmin3)/Lx3 +1.0000000001d0
       iy= isizeY*(y0(i)-ymin3)/Ly3 +1.0000000001d0
       iz= isizeZ*(z0(i)-zmin3)/Lz3 +1.0000000001d0
 !
@@ -2865,7 +2863,7 @@
 !
 !-----------------------------------------------------------------------
       subroutine forces (x,y,z,ch,am,ag,ffr,E_C_r1,E_C_r2,E_LJ2,       &
-                         Lx3,Ly3,Lz3,rcut_Clf,rcutLJ,prefc_LJ,pref_LJ, &
+                         Lx3,Ly3,Lz3,rcut_Clf,rcutlj,prefc_lj,pref_lj, &
                          size,ipar,igrp,n_twice,ns,np,nCLp)
 !---------------------------------------+++++++-------------------------
       use, intrinsic :: iso_c_binding 
@@ -2874,54 +2872,42 @@
       include    'param_3p7_Ca.h' 
       include    'mpif.h'
 !
-      real(c_double),dimension(npq0) :: x,y,z,ch,am,ag
-      real(c_double),dimension(npq0,3) :: ffr,ffc
-!
-      real(c_double) E_C_r1,E_C_r2,E_LJ2,E_LJ,Lx3,Ly3,Lz3, &
-                     rcut_Clf,rcutLJ,prefC_LJ,pref_LJ,     &
-                     aLJ,dx0,dy0,dz0
       integer(c_int) size,ipar,igrp,ns,np,nCLp,n_twice
 !
-      real(c_double),dimension(npq0,3) :: fec   ! in /moldyn/
-      real(c_double),dimension(npq0) :: x0,y0,z0
-      common/forcepl/ fec 
-      common/initpos/ x0,y0,z0
+      real(c_double),dimension(npq0) :: x,y,z,ch,am,ag
+      real(c_double),dimension(npq0,3) :: ffr,ffc
+      real(c_double)  E_C_r1,E_C_r2,E_LJ2,E_LJ,Lx3,Ly3,Lz3, &
+                      alj,dx0,dy0,dz0
+!
+      real(c_double)  fec,x0,y0,z0
+      common/forcepl/ fec(npq0,3)                            ! in /moldyn/
+      common/initpos/ x0(npq0),y0(npq0),z0(npq0) 
 !
       real(c_float)  time,xp_leng
       common/headr2/ time,xp_leng
 !  
-      integer(c_int) i,j,k,l,kk,kc,ll,ibox,neigh,ierror,   &
+      integer(c_int) i,j,k,l,kk,kc,ll,ncel,lcel,nipl,lipl,liplc,kmax, &
+                     ibind,istop,ibox,neigh,ierror,iwrt1,iwrt2,iwrt3, &
                      ix,iy,iz,ix1,iy1,iz1,istp,npar
-!
-      integer(c_int),dimension(nc3) :: ncel
-      integer(c_int),dimension(nbxc,nc3) :: lcel
-      integer(c_int),dimension(nbxs,n00) :: lipl
-      integer(c_int),dimension(n00) :: nipl
-      integer(c_int),dimension(nbx2,n10) :: liplc
-      integer(c_int),dimension(27,nc3) :: ibind
-      integer(c_int) kmax,istop,iwrt1,iwrt2,iwrt3
-!
-      common/srflist/ ncel,lcel               !  in /moldyn/
-      common/srflis2/ nipl,lipl,liplc,kmax 
-      common/boxind/  ibind
+      common/srflist/ ncel(nc3),lcel(nbxc,nc3)               !  in /moldyn/
+      common/srflis2/ nipl(n00),lipl(nbxs,n00),liplc(nbx2,n10),kmax 
+      common/boxind/ ibind(27,nc3)
       common/abterms/ istop
-      common/iotim/   iwrt1,iwrt2,iwrt3
+      common/iotim/  iwrt1,iwrt2,iwrt3
 !
-      logical         cr_table
-      integer(c_int)  itab,itabs              ! nipl0 in /moldyn/
-      integer(c_int),dimension(n00) :: nipl0
-      integer(c_int),dimension(nbxs,n00) :: lipl0
-      common/srflst0/ cr_table,itab,nipl0,lipl0
+      logical        cr_table
+      integer(c_int)  itab,nipl0,lipl0,itabs            ! nipl0 in /moldyn/
+      common/srflst0/ cr_table,itab,nipl0(n00),lipl0(nbxs,n00) 
       common/plupdat/ itabs
 !
 !* afre table
 !     integer(c_int)  naf
 !     parameter       (naf=(ns0/num_proc)*0.3)  !<-- param_3p7_Ca.h
-      integer(c_int)  nafl
-      integer(c_int),dimension(nbxc*naf) :: iafl,jafl
-      common/afretap/ nafl,iafl,jafl
+      integer(c_int)  nafl,iafl,jafl
+      common/afretap/ nafl,iafl(nbxc*naf),jafl(nbxc*naf)
 !
-      real(c_double) dx,dy,dz,tt,r2,r,forceV,ccel,            &
+      real(c_double) rcut_Clf,rcutlj,prefC_LJ,pref_LJ,        &
+                     dx,dy,dz,tt,r2,r,forceV,ccel,            &
                      driwu,driwu2,addpot,slj,                 &
                      rsi,snt,rcl,rsccl,rsclj,preflj,          &
                      rcut,rcut2,unif1(3),unif2(3)
@@ -2961,14 +2947,12 @@
         Lx3= xmax3 -xmin3
         Ly3= ymax3 -ymin3
         Lz3= zmax3 -zmin3
-!
-!    Particle index table of ibind( , ), in L.2950 and L.3037
 !    -----------------
         call Labels
 !    -----------------
 !
         do k= 1,nc3
-        ncel(k)= 0             !  Clear the cell register.
+        ncel(k)= 0             !  clear the cell register.
         end do
 !
 !  Step 1: LR-part for 5 steps
@@ -3057,7 +3041,7 @@
         if(neigh.eq.0) go to 230     ! far away
 !
         do 240 l= 1,ncel(neigh)      ! find ions in the boxes around i-th
-        j= lcel(l,neigh)             !  j-th belongs to this box, from L.2965
+        j= lcel(l,neigh)             !  j-th belongs to this box.
 !
         if(j.le.i) go to 240
 !          ++++++
@@ -3078,7 +3062,7 @@
               iafl(nafl)= i
               jafl(nafl)= j
             else
-              nipl(kk)= nipl(kk) +1   ! nipl(kk)>=1, build up 
+              nipl(kk)= nipl(kk) +1   ! nipl(kk)=1 and ...
               liplc(nipl(kk),kc)= j
             end if
 !
@@ -3088,7 +3072,7 @@
               iafl(nafl)= i
               jafl(nafl)= j
             else
-              nipl(kk)= nipl(kk) +1   ! nipl(kk)>=1, build up
+              nipl(kk)= nipl(kk) +1   ! nipl(kk)=1 and ...
               lipl(nipl(kk),kk)= j
             end if
           end if
@@ -3222,27 +3206,27 @@
       if(i.le.ns .and. j.le.ns) then   ! strictly, C or Au pair
         rcut= 3.5d-8
 !
-        dx0= x0(i) -x0(j)      ! crystal distance = aLJ
+        dx0= x0(i) -x0(j)      ! crystal distance = alj
         dy0= y0(i) -y0(j)      !  frozen (ugoka nai)
         dz0= z0(i) -z0(j)
-        aLJ= sqrt(dx0**2 +dy0**2 +dz0**2)
+        alj= sqrt(dx0**2 +dy0**2 +dz0**2)
 !
-        if(aLJ.lt.rcut) then   ! as r < 3.5 Ang
-          preflj= prefc_LJ     !   only 1st neighbor
-          slj = r/(aLJ/driwu)  !   note: minimum at aLJ/driwu
+        if(alj.lt.rcut) then   ! as r < 3.5 Ang
+          preflj= prefc_lj     !   only 1st neighbor
+          slj = r/(alj/driwu)  !   note: minimum at alj/driwu
 !                  ***
-          rsclj= 0.81d0*aLJ/driwu
+          rsclj= 0.81d0*alj/driwu
         else                   ! larger than equib. radius
-          rcut= rcutLJ         !   exclusion core (sterlic)
-          preflj= pref_LJ
+          rcut= rcutlj         !   exclusion core (sterlic)
+          preflj= pref_lj
 !
           slj = r/((ag(i)+ag(j))/driwu)
           rsclj= 0.81d0*(ag(i)+ag(j))/driwu
         end if
 !
       else                     ! 3.5 Ang, other than C and Au
-        rcut= rcutLJ           !   exclusion core (sterlic)
-        preflj= pref_LJ
+        rcut= rcutlj           !   exclusion core (sterlic)
+        preflj= pref_lj
 !
         slj = r/((ag(i)+ag(j))/driwu)
         rsclj= 0.81d0*(ag(i)+ag(j))/driwu
@@ -3295,24 +3279,24 @@
         dx0= x0(i) -x0(j)    ! crystal distance
         dy0= y0(i) -y0(j)
         dz0= z0(i) -z0(j)
-        aLJ= sqrt(dx0**2 +dy0**2 +dz0**2)
+        alj= sqrt(dx0**2 +dy0**2 +dz0**2)
 !
-        if(aLJ.lt.rcut) then  ! < 3.5 ang
-          preflj= prefc_LJ     ! onLy3 1st neighbor
-          slj = r/(aLJ/driwu)  ! note: minimum at aLJ/driwu
+        if(alj.lt.rcut) then  ! < 3.5 ang
+          preflj= prefc_lj     ! onLy3 1st neighbor
+          slj = r/(alj/driwu)  ! note: minimum at alj/driwu
 !                  ***
-          rsclj= 0.81d0*aLJ/driwu
+          rsclj= 0.81d0*alj/driwu
         else                  ! larger than equib. radius
-          rcut= rcutLJ         ! exclusion core (sterlic)
-          preflj= pref_LJ
+          rcut= rcutlj         ! exclusion core (sterlic)
+          preflj= pref_lj
 !
           slj = r/((ag(i)+ag(j))/driwu)
           rsclj= 0.81d0*(ag(i)+ag(j))/driwu
         end if
 !
       else                   ! 3.5 ang, other than c and au
-        rcut= rcutLJ          ! exclusion core (sterlic)
-        preflj= pref_LJ
+        rcut= rcutlj          ! exclusion core (sterlic)
+        preflj= pref_lj
 !
         slj = r/((ag(i)+ag(j))/driwu)
         rsclj= 0.81d0*(ag(i)+ag(j))/driwu
@@ -3442,9 +3426,8 @@
 !----------------------------------------------------------
       subroutine Labels
 !----------------------------------------------------------
-!*  Indices of the neighboring (27) sub-boxes are defined
-!   and saved in ibind(27,nc3). Non-periodic: no folding
-!
+!*  Indices of the neighboring (27) sub-boxes.
+!   Non-periodic: no folding
       use, intrinsic :: iso_c_binding 
       implicit none
 !
@@ -3833,8 +3816,8 @@
 !  
       character(len=8) praefix8,text1*40
 !
-      real(c_double) rcut_Clf,rcutLJ,Temp,epsCLJ,epsLJ
-      common/cutoffrd/ rcut_Clf,rcutLJ
+      real(c_double) rcut_Clf,rcutlj,Temp,epsCLJ,epsLJ
+      common/cutoffrd/ rcut_Clf,rcutlj
       common/ELSTA/  Temp,epsCLJ,epsLJ
 !
       integer(c_int)  iiwrt1,iiwrt2,iiwrt3
@@ -3967,10 +3950,10 @@
       integer(c_int) ns,np,nCLp
       INTEGER(c_int) N_LP,v_G,N_SMol,v_SP,v_SM,Seed
 !
-      real(c_double) rcutLJ,rcut_Clf,SKIN
+      real(c_double) rcutlj,rcut_Clf,SKIN
       real(c_double) Temp,epsCLJ,epsLJ
 !
-      common/cutoffrd/ rcut_Clf,rcutLJ
+      common/cutoffrd/ rcut_Clf,rcutlj
       common/ELSTA/  Temp,epsCLJ,epsLJ
 !----------------------------------------------------------------
       real(c_double) pi,tg,dt,dth,prefC_LJ,pref_LJ,pthe,tmax
@@ -4096,8 +4079,8 @@
       common/ionsiz/ R_sp,D_sp,N_sp,massi,Lambda_D,               &
                      ch_ion,wt_ion,rd_CP,rd_HP,ch_el,wt_el,rd_el 
 !
-      real(c_double) rcut_Clf,rcutLJ,pi2,cci
-      common/cutoffrd/ rcut_Clf,rcutLJ
+      real(c_double) rcut_Clf,rcutlj,pi2,cci
+      common/cutoffrd/ rcut_Clf,rcutlj
 !
       integer(c_int) sgn(3,6)
       data sgn /1,0,0, -1,0,0, 0,1,0, 0,-1,0, 0,0,1, 0,0,-1/
