@@ -90,7 +90,7 @@
 !    (Ez,Bx) in envelop: (sin,cos)*exp(-(t/tq)**2)                    !
 !                                                                     !
 ! PGFortran                                                           !
-! $ mpif90 -mcmodel=medium -fast -tp=px -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 
+! $ mpif90 -mcmodel=medium -fast -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 
 !                                                                     !
 ! gfortran                                                            !
 ! $ mpif90 -mcmodel=medium -fpic -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3 
