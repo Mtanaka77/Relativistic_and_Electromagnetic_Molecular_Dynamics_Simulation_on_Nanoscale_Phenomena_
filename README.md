@@ -113,7 +113,7 @@ Compilation by mpif90:
 
 The script 'mpif90 @cnt3em-3pCa.f03' needs param_em3p7_Ca.h, Cntemp_config.STARTC, p_config_ss.xyz_P135 and p_config_ss.xyz_D150.
 
-  % mpif90 -byteswapio -mcmodel=medium -fast @cnt3em3_3pCa.f03 -I/opt/pgi/fftw3/include -L/opt/pgi/fftw3/lib -lfftw3
+  % mpif90 -byteswapio -mcmodel=medium -fast -O2 @cnt3em3_3pCa.f03 -I/opt/pgi/fftw3/include -L/opt/pgi/fftw3/lib -lfftw3  (For Little Endian)
 
 (2) Linux (gcc gfortran): MPI and FFTW; configure, make, and make install for installation.
 
@@ -121,7 +121,7 @@ The script 'mpif90 @cnt3em-3pCa.f03' needs param_em3p7_Ca.h, Cntemp_config.START
 
   % fftw3-3.3.10: ./configure --disable-shared --enable-maintainer-mode --enable-threads --prefix=/opt/fftw3
 
-  % mpif90 -mcmodel=medium -fPIC @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3
+  % mpif90 -mcmodel=medium -fPIC -O2 @a_cnt3-3p7Ca.f03 -I/opt/fftw3/include -L/opt/fftw3/lib -lfftw3
 
   The parallelization simulation code is utilized, for example. 
 Two different fortrans, PGI and gfotran, are incompatible with processors of the same name but different styles.
